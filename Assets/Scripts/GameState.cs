@@ -8,26 +8,49 @@ public class GameState
 
     private readonly Dictionary<IGameStateVariable, HashSet<Action>> _variableListenersDictionary;
     private readonly Dictionary<Action, HashSet<IGameStateVariable>> _pendingVariableChangesDictionary;
+    private readonly HashSet<Action> _notifiedListenersBuffer = new();
 
     public GameState(int coins, int stars)
     {
         _variableListenersDictionary = new Dictionary<IGameStateVariable, HashSet<Action>>();
         _pendingVariableChangesDictionary = new Dictionary<Action, HashSet<IGameStateVariable>>();
-        
+
         Coins = new GameStateVariable<int>(coins, OnAnyValueChanged);
         Stars = new GameStateVariable<int>(stars, OnAnyValueChanged);
     }
 
     private void OnAnyValueChanged(IGameStateVariable changedVariable)
     {
-        var listeners = _variableListenersDictionary[changedVariable];
+        var listenersToNotify = _variableListenersDictionary[changedVariable];
+
+        var notifiedListeners = TryNotifyListeners(changedVariable, listenersToNotify, _notifiedListenersBuffer);
+
+        ClearNotifiedListeners(notifiedListeners, listenersToNotify);
+    }
+
+    private static void ClearNotifiedListeners(HashSet<Action> notifiedListeners, HashSet<Action> listeners)
+    {
+        foreach (var listenerToClear in notifiedListeners)
+        {
+            listeners.Remove(listenerToClear);
+        }
+
+        notifiedListeners.Clear();
+    }
+
+    private HashSet<Action> TryNotifyListeners(IGameStateVariable variable, HashSet<Action> listeners,
+        HashSet<Action> notifiedBuffer)
+    {
         foreach (var listener in listeners)
         {
-            if (CanNotifyListener(changedVariable, listener))
+            if (CanNotifyListener(variable, listener))
             {
                 NotifyListener(listener);
+                notifiedBuffer.Add(listener);
             }
         }
+
+        return notifiedBuffer;
     }
 
     private void NotifyListener(Action action)
@@ -45,7 +68,6 @@ public class GameState
     public void ListenFor<T>(GameStateVariable<T> variable, Action listenerAction)
     {
         AddListenerToVariableDictionary(variable, listenerAction);
-
         AddVariableToPendingDictionary(variable, listenerAction);
     }
 
