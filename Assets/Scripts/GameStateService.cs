@@ -1,3 +1,4 @@
+
 public class GameStateService
 {
     private static readonly GameStateService _instance = new GameStateService();
@@ -13,8 +14,8 @@ public class GameStateService
     {
         State = new GameState()
         {
-            Coins = coins,
-            Stars = stars
+            Coins = new GameStateVariable<int>(coins),
+            Stars = new GameStateVariable<int>(stars)
         };
     }
 }
