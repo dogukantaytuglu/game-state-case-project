@@ -3,13 +3,11 @@ using System;
 public class GameStateVariable<T> : IGameStateVariable
 {
     private readonly Action<IGameStateVariable> _onValueChanged;
-    public string DebugName;
 
-    public GameStateVariable(T initValue, Action<IGameStateVariable> onValueChanged, string debugName)
+    public GameStateVariable(T initValue, Action<IGameStateVariable> onValueChanged)
     {
         _value = initValue;
         _onValueChanged = onValueChanged;
-        DebugName = debugName;
     }
 
     public T Value

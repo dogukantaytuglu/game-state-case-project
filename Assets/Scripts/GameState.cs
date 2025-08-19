@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 public class GameState
 {
@@ -14,8 +13,9 @@ public class GameState
     {
         _variableListenersDictionary = new Dictionary<IGameStateVariable, HashSet<Action>>();
         _pendingVariableChangesDictionary = new Dictionary<Action, HashSet<IGameStateVariable>>();
-        Coins = new GameStateVariable<int>(coins, OnAnyValueChanged, "Coins");
-        Stars = new GameStateVariable<int>(stars, OnAnyValueChanged, "Stars");
+        
+        Coins = new GameStateVariable<int>(coins, OnAnyValueChanged);
+        Stars = new GameStateVariable<int>(stars, OnAnyValueChanged);
     }
 
     private void OnAnyValueChanged(IGameStateVariable changedVariable)
@@ -53,10 +53,7 @@ public class GameState
     {
         if (_pendingVariableChangesDictionary.TryGetValue(listenerAction, out var variables))
         {
-            if (!variables.Add(variable))
-            {
-                Debug.LogWarning($"{variable.DebugName} exists in {listenerAction.Method.Name} pending dictionary");
-            }
+            variables.Add(variable);
         }
 
         else
@@ -69,10 +66,7 @@ public class GameState
     {
         if (_variableListenersDictionary.TryGetValue(variable, out var listeners))
         {
-            if (!listeners.Add(listenerAction))
-            {
-                Debug.LogWarning($"{listenerAction.Method.Name} exists in listener dictionary of {variable.DebugName}");
-            }
+            listeners.Add(listenerAction);
         }
 
         else
