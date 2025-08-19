@@ -1,12 +1,15 @@
 using System;
 
-public class GameStateVariable<T>
+public class GameStateVariable<T> : IGameStateVariable
 {
-    public Action OnValueChanged;
+    private readonly Action<IGameStateVariable> _onValueChanged;
+    public string DebugName;
 
-    public GameStateVariable(T initValue)
+    public GameStateVariable(T initValue, Action<IGameStateVariable> onValueChanged, string debugName)
     {
         _value = initValue;
+        _onValueChanged = onValueChanged;
+        DebugName = debugName;
     }
 
     public T Value
@@ -16,7 +19,7 @@ public class GameStateVariable<T>
         set
         {
             _value = value;
-            OnValueChanged?.Invoke();
+            _onValueChanged?.Invoke(this);
         }
     }
 

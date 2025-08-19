@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using UnityEngine;
 
 namespace Tests
 {
@@ -24,11 +25,12 @@ namespace Tests
 
             var gameState = gameStateService.State;
             var stateObserverCalled = false;
-            gameState.Coins.OnValueChanged += () =>
+            
+            gameState.ListenFor(gameState.Coins, () =>
             {
                 stateObserverCalled = true;
                 Assert.That(gameState.Coins.Value, Is.EqualTo(8));
-            };
+            });
             
             ShopService.Get().UseCoins(2);
 
@@ -42,16 +44,17 @@ namespace Tests
             gameStateService.Init(10,0);
 
             var stateObserverCalled = false;
+            var gameState = gameStateService.State;
+
             void StateValidator()
             {
                 stateObserverCalled = true;
-                var gameState = gameStateService.State;
-                Assert.That(gameState.Stars, Is.EqualTo(1));
-                Assert.That(gameState.Coins, Is.EqualTo(9));
+                Assert.That(gameState.Stars.Value, Is.EqualTo(1));
+                Assert.That(gameState.Coins.Value, Is.EqualTo(9));
             }
-
-            gameStateService.State.Coins.OnValueChanged += StateValidator;
-            gameStateService.State.Stars.OnValueChanged += StateValidator;
+            
+            gameState.ListenFor(gameState.Coins, StateValidator);
+            gameState.ListenFor(gameState.Stars, StateValidator);
 
             var shopService = ShopService.Get();
             shopService.BuyStars(1, 1);
