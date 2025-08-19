@@ -9,8 +9,13 @@ public class ShopService
 
     public void BuyStars(int stars, int forCoins)
     {
-        GameStateService.Get().State.Stars.Value += stars;
+        EarnStars(stars);
         UseCoins(forCoins);
+    }
+
+    private static void EarnStars(int stars)
+    {
+        GameStateService.Get().State.Stars.Value += stars;
     }
 
     public void UseCoins(int coins)
