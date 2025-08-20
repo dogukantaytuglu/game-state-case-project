@@ -2,11 +2,11 @@ using System;
 
 public class BaseStateVariable : IGameStateVariable
 {
-    protected readonly IValueChangeListener ValueChangeListener;
-    protected Action<IGameStateVariable> OnValueChanged => ValueChangeListener.OnAnyValueChanged;
+    protected Action<IGameStateVariable> OnValueChanged => _valueChangeListener.OnAnyValueChanged;
+    private readonly IValueChangeListener _valueChangeListener;
 
     protected BaseStateVariable(IValueChangeListener valueChangeListener)
     {
-        ValueChangeListener = valueChangeListener;
+        _valueChangeListener = valueChangeListener;
     }
 }
