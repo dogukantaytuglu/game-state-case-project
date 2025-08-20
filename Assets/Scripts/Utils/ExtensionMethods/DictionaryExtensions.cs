@@ -4,9 +4,9 @@ public static class DictionaryExtensions
 {
     public static void AddItemToCollectionValue<T1, T2, T3>(this Dictionary<T1, T2> dictionary,T1 key, T3 value) where T2 : ICollection<T3>, new()
     {
-        if (dictionary.TryGetValue(key, out var listeners))
+        if (dictionary.TryGetValue(key, out var collection))
         {
-            listeners.Add(value);
+            collection.Add(value);
         }
 
         else

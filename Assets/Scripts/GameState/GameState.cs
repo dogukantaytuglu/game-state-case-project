@@ -17,13 +17,13 @@ public class GameState
         Unit = new Unit(enemyCount, _gameStateEventSystem);
     }
 
-    public void StartListening(IGameStateVariable variable, Action listenerAction)
+    public void Subscribe(IGameStateVariable variable, Action observer)
     {
-        _gameStateEventSystem.Subscribe(variable, listenerAction);
+        _gameStateEventSystem.Subscribe(variable, observer);
     }
 
-    public void StopListening(IGameStateVariable variable, Action listenerAction)
+    public void Unsubscribe(IGameStateVariable variable, Action observer)
     {
-        _gameStateEventSystem.Unsubscribe(variable, listenerAction);
+        _gameStateEventSystem.Unsubscribe(variable, observer);
     }
 }
