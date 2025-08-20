@@ -7,13 +7,14 @@ public class GameState
     public readonly GameStateVariable<int> Stars;
 
     private readonly Dictionary<IGameStateVariable, HashSet<Action>> _variableListenersDictionary;
-    private readonly Dictionary<Action, HashSet<IGameStateVariable>> _pendingVariableChangesDictionary;
-    private readonly HashSet<Action> _notifiedListenersBuffer = new();
+    private readonly Dictionary<Action, HashSet<IGameStateVariable>> _actionVariableDependencyDictionary;
+    private readonly Dictionary<Action, HashSet<IGameStateVariable>> _actionVariableChangedDictionary;
 
     public GameState(int coins, int stars)
     {
         _variableListenersDictionary = new Dictionary<IGameStateVariable, HashSet<Action>>();
-        _pendingVariableChangesDictionary = new Dictionary<Action, HashSet<IGameStateVariable>>();
+        _actionVariableDependencyDictionary = new Dictionary<Action, HashSet<IGameStateVariable>>();
+        _actionVariableChangedDictionary = new Dictionary<Action, HashSet<IGameStateVariable>>();
 
         Coins = new GameStateVariable<int>(coins, OnAnyValueChanged);
         Stars = new GameStateVariable<int>(stars, OnAnyValueChanged);
@@ -23,64 +24,72 @@ public class GameState
     {
         var listenersToNotify = _variableListenersDictionary[changedVariable];
 
-        var notifiedListeners = TryNotifyListeners(changedVariable, listenersToNotify, _notifiedListenersBuffer);
-
-        ClearNotifiedListeners(notifiedListeners, listenersToNotify);
+        TryNotifyListeners(changedVariable, listenersToNotify);
     }
 
-    private static void ClearNotifiedListeners(HashSet<Action> notifiedListeners, HashSet<Action> listeners)
-    {
-        foreach (var listenerToClear in notifiedListeners)
-        {
-            listeners.Remove(listenerToClear);
-        }
-
-        notifiedListeners.Clear();
-    }
-
-    private HashSet<Action> TryNotifyListeners(IGameStateVariable variable, HashSet<Action> listeners,
-        HashSet<Action> notifiedBuffer)
+    private void TryNotifyListeners(IGameStateVariable variable, HashSet<Action> listeners)
     {
         foreach (var listener in listeners)
         {
             if (CanNotifyListener(variable, listener))
             {
                 NotifyListener(listener);
-                notifiedBuffer.Add(listener);
             }
         }
-
-        return notifiedBuffer;
     }
 
     private void NotifyListener(Action action)
     {
+        _actionVariableChangedDictionary[action].Clear();
         action.Invoke();
-        _pendingVariableChangesDictionary.Remove(action);
     }
 
     private bool CanNotifyListener(IGameStateVariable changedVariable, Action action)
     {
-        _pendingVariableChangesDictionary[action].Remove(changedVariable);
-        return _pendingVariableChangesDictionary[action].Count < 1;
+        var changedVariableSet = AddChangedVariableToAction(changedVariable, action);
+
+        var dependencySet = _actionVariableDependencyDictionary[action];
+        return changedVariableSet.Count >= dependencySet.Count;
     }
 
-    public void ListenFor<T>(GameStateVariable<T> variable, Action listenerAction)
+    private HashSet<IGameStateVariable> AddChangedVariableToAction(IGameStateVariable changedVariable, Action action)
+    {
+        if (_actionVariableChangedDictionary.TryGetValue(action, out var changedVariableSet))
+        {
+            changedVariableSet.Add(changedVariable);
+        }
+
+        else
+        {
+            changedVariableSet = new HashSet<IGameStateVariable>() { changedVariable };
+            _actionVariableChangedDictionary[action] = changedVariableSet;
+        }
+
+        return changedVariableSet;
+    }
+
+    public void Subscribe<T>(GameStateVariable<T> variable, Action listenerAction)
     {
         AddListenerToVariableDictionary(variable, listenerAction);
         AddVariableToPendingDictionary(variable, listenerAction);
     }
 
+    public void Unsubscribe<T>(GameStateVariable<T> variable, Action listenerAction)
+    {
+        _actionVariableDependencyDictionary.Remove(listenerAction);
+        _variableListenersDictionary[variable].Remove(listenerAction);
+    }
+
     private void AddVariableToPendingDictionary<T>(GameStateVariable<T> variable, Action listenerAction)
     {
-        if (_pendingVariableChangesDictionary.TryGetValue(listenerAction, out var variables))
+        if (_actionVariableDependencyDictionary.TryGetValue(listenerAction, out var variables))
         {
             variables.Add(variable);
         }
 
         else
         {
-            _pendingVariableChangesDictionary[listenerAction] = new HashSet<IGameStateVariable>() { variable };
+            _actionVariableDependencyDictionary[listenerAction] = new HashSet<IGameStateVariable>() { variable };
         }
     }
 

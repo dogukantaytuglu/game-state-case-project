@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using UnityEngine;
 
 namespace Tests
 {
@@ -25,7 +26,7 @@ namespace Tests
             var gameState = gameStateService.State;
             var stateObserverCalled = false;
 
-            gameState.ListenFor(gameState.Coins, () =>
+            gameState.Subscribe(gameState.Coins, () =>
             {
                 stateObserverCalled = true;
                 Assert.That(gameState.Coins.Value, Is.EqualTo(8));
@@ -54,14 +55,57 @@ namespace Tests
                 Assert.That(gameState.Coins.Value, Is.EqualTo(9));
             }
 
-            gameState.ListenFor(gameState.Coins, StateValidator);
-            gameState.ListenFor(gameState.Stars, StateValidator);
+            gameState.Subscribe(gameState.Coins, StateValidator);
+            gameState.Subscribe(gameState.Stars, StateValidator);
 
             var shopService = ShopService.Get();
             shopService.BuyStars(1, 1);
 
+            gameState.Unsubscribe(gameState.Coins, StateValidator);
+            gameState.Unsubscribe(gameState.Stars, StateValidator);
+            
             Assert.That(callCount, Is.EqualTo(1));
             Assert.That(stateObserverCalled, "Obsever not called");
+        }
+
+        [Test]
+        public void CanObserveMultipleConsistentGameStateChanges()
+        {
+            var gameStateService = GameStateService.Get();
+            var shopService = ShopService.Get();
+            
+            var initCoins = 100;
+            var currentStars = 0;
+            var starCost = 1;
+            var currentLoopCount = 0;
+            
+            gameStateService.Init(initCoins, currentStars);
+            var gameState = gameStateService.State;
+
+            var buyCount = Mathf.RoundToInt(initCoins / starCost);
+            
+            void StateValidator()
+            {
+                var stars = currentLoopCount;
+                var coins = initCoins - (starCost * currentLoopCount);
+                
+                Assert.That(gameState.Stars.Value, Is.EqualTo(stars));
+                Assert.That(gameState.Coins.Value, Is.EqualTo(coins));
+            }
+            
+            gameState.Subscribe(gameState.Coins, StateValidator);
+            gameState.Subscribe(gameState.Stars, StateValidator);
+
+            for (int i = 0; i < buyCount; i++)
+            {
+                currentLoopCount++;
+                shopService.BuyStars(1, starCost);
+            }
+            
+            gameState.Unsubscribe(gameState.Coins, StateValidator);
+            gameState.Unsubscribe(gameState.Stars, StateValidator);
+            
+            Assert.That(currentLoopCount, Is.EqualTo(buyCount));
         }
     }
 }
