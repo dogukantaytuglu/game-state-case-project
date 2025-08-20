@@ -26,7 +26,7 @@ namespace Tests
             var gameState = gameStateService.State;
             var stateObserverCalled = false;
 
-            gameState.Subscribe(gameState.Coins, () =>
+            gameState.StartListening(gameState.Coins, () =>
             {
                 stateObserverCalled = true;
                 Assert.That(gameState.Coins.Value, Is.EqualTo(8));
@@ -55,14 +55,14 @@ namespace Tests
                 Assert.That(gameState.Coins.Value, Is.EqualTo(9));
             }
 
-            gameState.Subscribe(gameState.Coins, StateValidator);
-            gameState.Subscribe(gameState.Stars, StateValidator);
+            gameState.StartListening(gameState.Coins, StateValidator);
+            gameState.StartListening(gameState.Stars, StateValidator);
 
             var shopService = ShopService.Get();
             shopService.BuyStars(1, 1);
 
-            gameState.Unsubscribe(gameState.Coins, StateValidator);
-            gameState.Unsubscribe(gameState.Stars, StateValidator);
+            gameState.StopListening(gameState.Coins, StateValidator);
+            gameState.StopListening(gameState.Stars, StateValidator);
             
             Assert.That(callCount, Is.EqualTo(1));
             Assert.That(stateObserverCalled, "Obsever not called");
@@ -93,8 +93,8 @@ namespace Tests
                 Assert.That(gameState.Coins.Value, Is.EqualTo(coins));
             }
             
-            gameState.Subscribe(gameState.Coins, StateValidator);
-            gameState.Subscribe(gameState.Stars, StateValidator);
+            gameState.StartListening(gameState.Coins, StateValidator);
+            gameState.StartListening(gameState.Stars, StateValidator);
 
             for (int i = 0; i < buyCount; i++)
             {
@@ -102,8 +102,8 @@ namespace Tests
                 shopService.BuyStars(1, starCost);
             }
             
-            gameState.Unsubscribe(gameState.Coins, StateValidator);
-            gameState.Unsubscribe(gameState.Stars, StateValidator);
+            gameState.StopListening(gameState.Coins, StateValidator);
+            gameState.StopListening(gameState.Stars, StateValidator);
             
             Assert.That(currentLoopCount, Is.EqualTo(buyCount));
         }
