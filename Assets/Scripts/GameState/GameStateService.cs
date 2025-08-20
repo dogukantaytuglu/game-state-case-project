@@ -10,8 +10,8 @@ public class GameStateService
 
     public GameState State { get; private set; }
 
-    public void Init(int coins, int stars)
+    public void Init(int coins, int stars, int enemyCount = 0)
     {
-        State = new GameState(coins, stars);
+        State = new GameState(coins, stars, enemyCount);
     }
 }

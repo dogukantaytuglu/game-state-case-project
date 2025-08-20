@@ -2,25 +2,27 @@ using System;
 
 public class GameState
 {
-    public readonly GameStateVariable<int> Coins;
-    public readonly GameStateVariable<int> Stars;
+    public readonly SingleValueVariable<int> Coins;
+    public readonly SingleValueVariable<int> Stars;
+    public readonly Unit Unit;
 
     private readonly GameStateEventSystem _gameStateEventSystem;
 
-    public GameState(int coins, int stars)
+    public GameState(int coins, int stars, int enemyCount)
     {
         _gameStateEventSystem = new GameStateEventSystem();
-        
-        Coins = new GameStateVariable<int>(coins, _gameStateEventSystem.OnAnyValueChanged);
-        Stars = new GameStateVariable<int>(stars, _gameStateEventSystem.OnAnyValueChanged);
+
+        Coins = new SingleValueVariable<int>(coins, _gameStateEventSystem);
+        Stars = new SingleValueVariable<int>(stars, _gameStateEventSystem);
+        Unit = new Unit(enemyCount, _gameStateEventSystem);
     }
-    
-    public void StartListening<T>(GameStateVariable<T> variable, Action listenerAction)
+
+    public void StartListening(IGameStateVariable variable, Action listenerAction)
     {
         _gameStateEventSystem.Subscribe(variable, listenerAction);
     }
 
-    public void StopListening<T>(GameStateVariable<T> variable, Action listenerAction)
+    public void StopListening(IGameStateVariable variable, Action listenerAction)
     {
         _gameStateEventSystem.Unsubscribe(variable, listenerAction);
     }

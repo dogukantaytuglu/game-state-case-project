@@ -107,5 +107,30 @@ namespace Tests
             
             Assert.That(currentLoopCount, Is.EqualTo(buyCount));
         }
+
+        [Test]
+        public void CaObserveComplexStructures()
+        {
+            var gameStateService = GameStateService.Get();
+            gameStateService.Init(1, 1, 4);
+            var state = gameStateService.State;
+            var unit = state.Unit;
+            var currentEnemyCount = unit.EnemyCount;
+            
+            void StateValidator()
+            {
+                Assert.That(unit.EnemyCount, Is.LessThan(currentEnemyCount));
+                currentEnemyCount = unit.EnemyCount;
+            }
+            
+            state.StartListening(state.Unit, StateValidator);
+
+            while (state.Unit.EnemyCount > 0)
+            {
+                unit.KillEnemy(unit.EnemyCount - 1);
+            }
+            
+            Assert.That(unit.EnemyCount, Is.EqualTo(0));
+        }
     }
 }

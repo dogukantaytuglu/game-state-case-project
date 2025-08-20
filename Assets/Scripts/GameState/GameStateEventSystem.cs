@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public class GameStateEventSystem
+public class GameStateEventSystem : IValueChangeListener
 {
     private readonly Dictionary<IGameStateVariable, HashSet<Action>> _variableListenersDictionary = new();
     private readonly Dictionary<Action, HashSet<IGameStateVariable>> _listenerPrerequisiteDictionary = new();
@@ -37,13 +37,13 @@ public class GameStateEventSystem
         return changedVariableSet.Count >= prerequisiteSet.Count;
     }
 
-    public void Subscribe<T>(GameStateVariable<T> variable, Action listener)
+    public void Subscribe(IGameStateVariable variable, Action listener)
     {
         AddListenerToVariableDictionary(variable, listener);
         AddPrerequisiteToListener(variable, listener);
     }
 
-    public void Unsubscribe<T>(GameStateVariable<T> variable, Action listener)
+    public void Unsubscribe(IGameStateVariable variable, Action listener)
     {
         _listenerPrerequisiteDictionary.Remove(listener);
         _variableListenersDictionary[variable].Remove(listener);
@@ -60,7 +60,7 @@ public class GameStateEventSystem
         _listenerPrerequisiteDictionary.AddItemToCollectionValue(listener, variable);
     }
 
-    private void AddListenerToVariableDictionary<T>(GameStateVariable<T> variable, Action listener)
+    private void AddListenerToVariableDictionary(IGameStateVariable variable, Action listener)
     {
         _variableListenersDictionary.AddItemToCollectionValue(variable, listener);
     }
