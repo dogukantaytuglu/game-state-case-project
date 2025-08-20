@@ -4,16 +4,14 @@ using System.Collections.Generic;
 public class GameStateEventSystem
 {
     private readonly Dictionary<IGameStateVariable, HashSet<Action>> _variableListenersDictionary = new();
-    private readonly Dictionary<Action, HashSet<IGameStateVariable>> _actionVariableDependencyDictionary = new();
-    private readonly Dictionary<Action, HashSet<IGameStateVariable>> _actionVariableChangedDictionary = new();
-    
+    private readonly Dictionary<Action, HashSet<IGameStateVariable>> _listenerPrerequisiteDictionary = new();
+    private readonly Dictionary<Action, HashSet<IGameStateVariable>> _listenerDirtyVariableDictionary = new();
+
     public void OnAnyValueChanged(IGameStateVariable changedVariable)
     {
-        var listenersToNotify = _variableListenersDictionary[changedVariable];
-
-        TryNotifyListeners(changedVariable, listenersToNotify);
+        TryNotifyListeners(changedVariable, _variableListenersDictionary[changedVariable]);
     }
-    
+
     private void TryNotifyListeners(IGameStateVariable variable, HashSet<Action> listeners)
     {
         foreach (var listener in listeners)
@@ -25,71 +23,45 @@ public class GameStateEventSystem
         }
     }
 
-    private void NotifyListener(Action action)
+    private void NotifyListener(Action listener)
     {
-        _actionVariableChangedDictionary[action].Clear();
-        action.Invoke();
+        _listenerDirtyVariableDictionary[listener].Clear();
+        listener.Invoke();
     }
 
-    private bool CanNotifyListener(IGameStateVariable changedVariable, Action action)
+    private bool CanNotifyListener(IGameStateVariable changedVariable, Action listener)
     {
-        var changedVariableSet = AddChangedVariableToAction(changedVariable, action);
+        var changedVariableSet = AddDirtyVariableToListener(changedVariable, listener);
 
-        var dependencySet = _actionVariableDependencyDictionary[action];
-        return changedVariableSet.Count >= dependencySet.Count;
+        var prerequisiteSet = _listenerPrerequisiteDictionary[listener];
+        return changedVariableSet.Count >= prerequisiteSet.Count;
     }
 
-    private HashSet<IGameStateVariable> AddChangedVariableToAction(IGameStateVariable changedVariable, Action action)
+    public void Subscribe<T>(GameStateVariable<T> variable, Action listener)
     {
-        if (_actionVariableChangedDictionary.TryGetValue(action, out var changedVariableSet))
-        {
-            changedVariableSet.Add(changedVariable);
-        }
-
-        else
-        {
-            changedVariableSet = new HashSet<IGameStateVariable>() { changedVariable };
-            _actionVariableChangedDictionary[action] = changedVariableSet;
-        }
-
-        return changedVariableSet;
+        AddListenerToVariableDictionary(variable, listener);
+        AddPrerequisiteToListener(variable, listener);
     }
 
-    public void Subscribe<T>(GameStateVariable<T> variable, Action listenerAction)
+    public void Unsubscribe<T>(GameStateVariable<T> variable, Action listener)
     {
-        AddListenerToVariableDictionary(variable, listenerAction);
-        AddVariableToPendingDictionary(variable, listenerAction);
+        _listenerPrerequisiteDictionary.Remove(listener);
+        _variableListenersDictionary[variable].Remove(listener);
+    }
+    
+    private HashSet<IGameStateVariable> AddDirtyVariableToListener(IGameStateVariable changedVariable, Action listener)
+    {
+        _listenerDirtyVariableDictionary.AddItemToCollectionValue(listener, changedVariable);
+        return _listenerDirtyVariableDictionary[listener];
     }
 
-    public void Unsubscribe<T>(GameStateVariable<T> variable, Action listenerAction)
+    private void AddPrerequisiteToListener(IGameStateVariable variable, Action listener)
     {
-        _actionVariableDependencyDictionary.Remove(listenerAction);
-        _variableListenersDictionary[variable].Remove(listenerAction);
+        _listenerPrerequisiteDictionary.AddItemToCollectionValue(listener, variable);
     }
 
-    private void AddVariableToPendingDictionary<T>(GameStateVariable<T> variable, Action listenerAction)
+    private void AddListenerToVariableDictionary<T>(GameStateVariable<T> variable, Action listener)
     {
-        if (_actionVariableDependencyDictionary.TryGetValue(listenerAction, out var variables))
-        {
-            variables.Add(variable);
-        }
-
-        else
-        {
-            _actionVariableDependencyDictionary[listenerAction] = new HashSet<IGameStateVariable>() { variable };
-        }
-    }
-
-    private void AddListenerToVariableDictionary<T>(GameStateVariable<T> variable, Action listenerAction)
-    {
-        if (_variableListenersDictionary.TryGetValue(variable, out var listeners))
-        {
-            listeners.Add(listenerAction);
-        }
-
-        else
-        {
-            _variableListenersDictionary[variable] = new HashSet<Action>() { listenerAction };
-        }
+        _variableListenersDictionary.AddItemToCollectionValue(variable, listener);
     }
 }
